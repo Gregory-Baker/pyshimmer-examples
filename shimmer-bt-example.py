@@ -1,8 +1,14 @@
 import time
+import atexit
 
 from serial import Serial
 
 from pyshimmer import ShimmerBluetooth, DEFAULT_BAUDRATE, DataPacket, EChannelType
+
+def exit_handler():
+    print('Stopping Shimmer logging!')
+    shim_dev.stop_logging()
+    shim_dev.shutdown()
 
 
 def handler(pkt: DataPacket) -> None:
@@ -11,6 +17,8 @@ def handler(pkt: DataPacket) -> None:
 
 
 if __name__ == '__main__':
+    atexit.register(exit_handler)
+
     serial = Serial('/dev/rfcomm1', DEFAULT_BAUDRATE)
     shim_dev = ShimmerBluetooth(serial)
 
@@ -19,10 +27,11 @@ if __name__ == '__main__':
     dev_name = shim_dev.get_device_name()
     print(f'My name is: {dev_name}')
 
-    shim_dev.add_stream_callback(handler)
+    print('Starting Shimmer logging!')
+    shim_dev.start_logging()
 
-    shim_dev.start_streaming()
-    time.sleep(5.0)
-    shim_dev.stop_streaming()
-
-    shim_dev.shutdown()
+    try:
+        while True:
+            time.sleep(10)
+    except KeyboardInterrupt:
+        print('interrupted!')

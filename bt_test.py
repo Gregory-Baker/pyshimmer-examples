@@ -1,4 +1,6 @@
 import time
+import argparse
+import atexit
 
 from serial import Serial
 
@@ -6,8 +8,9 @@ from pyshimmer import ShimmerBluetooth, DEFAULT_BAUDRATE, DataPacket, EChannelTy
 
 
 def handler(pkt: DataPacket) -> None:
-    ppg_value = pkt[EChannelType.INTERNAL_ADC_13]
-    print(f'Received new PPG value: {ppg_value}')
+    ppg_raw = pkt[EChannelType.INTERNAL_ADC_13]
+    #
+    ppg_mv = ppg_raw * (3000.0/4095.0)
 
     gsr_raw = pkt[EChannelType.GSR_RAW]
 
@@ -23,14 +26,56 @@ def handler(pkt: DataPacket) -> None:
         Rf = 3300.0 # kohm
 
     gsr_to_volts = (gsr_raw & 0x3fff) * (3.0/4095.0)
-    gsr_ohm = Rf/( (gsr_to_volts /0.5) - 1.0)
-    gsr_mS = 1000/gsr_ohm
+    gsr_kohm = Rf/( (gsr_to_volts /0.5) - 1.0)
+    gsr_muS = 1000/gsr_kohm
 
-    print(f'Received new GSR value: {gsr_mS:.3f}')
+
+    try: 
+        with open(output_file, 'a') as writer:
+            #writer.write(str(timestamp_session))
+            #writer.write(',')
+            writer.write(str(gsr_muS))
+            writer.write(',')
+            writer.write(str(ppg_mv))
+            writer.write('\n')
+            print(f'PPG value: {ppg_mv}')
+            print(f'GSR value: {gsr_muS:.3f}')
+    except:
+        print('Write to file failed')
+        print(f'PPG value: {ppg_mv}')
+        print(f'GSR value: {gsr_muS:.3f}')
+
+def exit_handler():
+    print('My application is ending!')
 
 
 
 if __name__ == '__main__':
+        # Create our Argument parser and set its description
+    parser = argparse.ArgumentParser(
+        description="Extract GSR and PPG data from Shimmer and Log it",
+    )
+
+    parser.add_argument(
+        'shimmer_port',
+        type=str,
+        help='The bluetooth port of the Shimmer, e.g. /dev/rfcomm1'
+    )
+
+    parser.add_argument(
+        'output_file',
+        help='Location of dest file (default: source_file appended with `_unix`',
+    )
+
+    # Parse the args (argparse automatically grabs the values from
+    # sys.argv)
+    args = parser.parse_args()
+
+    shimmer_port = args.shimmer_port
+
+    global output_file
+    output_file = args.output_file
+
     serial = Serial('/dev/rfcomm1', DEFAULT_BAUDRATE)
     shim_dev = ShimmerBluetooth(serial)
 
@@ -42,7 +87,7 @@ if __name__ == '__main__':
     shim_dev.add_stream_callback(handler)
 
     shim_dev.start_streaming()
-    time.sleep(50.0)
+    time.sleep(20.0)
     shim_dev.stop_streaming()
 
     shim_dev.shutdown()
