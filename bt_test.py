@@ -47,7 +47,7 @@ def handler(pkt: DataPacket) -> None:
     gsr_muS = 1000/gsr_kohm
 
     if (num_packets%1000 == 0):
-        print("1000 more packets received!")
+        print("1000 more Shimmer packets received!")
 
     num_packets = num_packets + 1
 
@@ -60,8 +60,6 @@ def handler(pkt: DataPacket) -> None:
             writer.write(',')
             writer.write(str(ppg_mv))
             writer.write('\n')
-            #print(f'PPG value: {ppg_mv}')
-            #print(f'GSR value: {gsr_muS:.3f}')
     except:
         print('Write to file failed')
         print(f'PPG value: {ppg_mv}')
@@ -72,27 +70,26 @@ if __name__ == '__main__':
 
     atexit.register(exit_handler)
 
-        # Create our Argument parser and set its description
+    # Create our Argument parser and set its description
     parser = argparse.ArgumentParser(
         description="Extract GSR and PPG data from Shimmer and Log it",
     )
 
-    # parser.add_argument(
-    #     'shimmer_port',
-    #     type=str,
-    #     help='The bluetooth port of the Shimmer, e.g. /dev/rfcomm1'
-    # )
+    parser.add_argument(
+        'shimmer_port',
+        help='The bluetooth port of the Shimmer, e.g. /dev/rfcomm1',
+    )
 
     parser.add_argument(
         'output_file',
-        help='Location of dest file (default: source_file appended with `_unix`',
+        help='Location of output csv file',
     )
 
     # Parse the args (argparse automatically grabs the values from
     # sys.argv)
     args = parser.parse_args()
 
-    # shimmer_port = args.shimmer_port
+    shimmer_port = args.shimmer_port
 
     global timestamp_start, num_packets, output_file, osc_frequency, shim_dev
     output_file = args.output_file
@@ -101,7 +98,7 @@ if __name__ == '__main__':
     timestamp_start = 0
     osc_frequency = 32768
 
-    serial = Serial('/dev/rfcomm1', DEFAULT_BAUDRATE)
+    serial = Serial(shimmer_port, DEFAULT_BAUDRATE)
     shim_dev = ShimmerBluetooth(serial)
 
     shim_dev.initialize()
