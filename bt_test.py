@@ -26,7 +26,7 @@ def handler(pkt: DataPacket) -> None:
 
     if(num_packets == 0):
         timestamp_start = timestamp
-    
+
     timestamp_session = timestamp - timestamp_start
     time_session = timestamp_session/osc_frequency
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # shimmer_port = args.shimmer_port
 
-    global timestamp_start, num_packets, output_file, osc_frequency
+    global timestamp_start, num_packets, output_file, osc_frequency, shim_dev
     output_file = args.output_file
 
     num_packets = 0
